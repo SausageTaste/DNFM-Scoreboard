@@ -36,7 +36,7 @@ def __make_ranking_list(score_map):
     return ranking_list
 
 
-def __is_ranking_list_valid(ranking_list: list):
+def __assert_ranking_list_validity(ranking_list: list):
     last_score = 999999
 
     for x in ranking_list:
@@ -44,11 +44,9 @@ def __is_ranking_list_valid(ranking_list: list):
             continue
 
         if last_score < x:
-            return False
+            raise RuntimeError()
         else:
             last_score = x
-
-    return True
 
 
 def __make_csv_data(ranking_list: list):
@@ -88,7 +86,7 @@ def main():
             score_map[name].add(score_values[j])
 
     ranking_list = __make_ranking_list(score_map)
-    assert __is_ranking_list_valid(ranking_list)
+    __assert_ranking_list_validity(ranking_list)
     output_csv_data = __make_csv_data(ranking_list)
 
     with open(os.path.join(DATA_IMAGE_FOL_PATH, "output.csv"), "w") as file:
