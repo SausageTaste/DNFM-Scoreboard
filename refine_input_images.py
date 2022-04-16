@@ -4,7 +4,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 
-SRC_IMAGE_FOLDER_PATH = r"C:\Users\woos8\Videos\DNFM\엘마 2022.04.17"
+SRC_IMAGE_FOLDER_PATH = r"C:\Users\woos8\Videos\DNFM\New folder"
 
 TOP_CROP_Y = 0.25
 BOTTOM_CROP_Y = 0.77
@@ -69,6 +69,21 @@ def __find_cut_points(image: Image):
     return cut_y_points
 
 
+def __save_cut_point_plot(image: Image, cut_y_points: list, output_file_path: str):
+    x_axis = [xx for xx in range(image.height)]
+    y_axis = []
+    for y in range(image.height):
+        pixel = image.getpixel((image.width * 1019 / 1072, y))
+        average_color = sum(pixel) / len(pixel)
+        y_axis.append(average_color)
+
+    plt.cla()
+    plt.plot(x_axis, y_axis, color="blue")
+    for y in cut_y_points:
+        plt.axvline(x=y, color="red")
+    plt.savefig(output_file_path)
+
+
 def main():
     output_folder_path = os.path.join(SRC_IMAGE_FOLDER_PATH, "refine_output")
     try:
@@ -89,21 +104,7 @@ def main():
         if 0 != cut_y_points[0]:
             cut_y_points.insert(0, 0)
         cut_y_points.append(image.height)
-
-        """
-        x_axis = [xx for xx in range(image.height)]
-        y_axis = []
-        for y in range(image.height):
-            pixel = image.getpixel((image.width * 1019 / 1072, y))
-            average_color = sum(pixel) / len(pixel)
-            y_axis.append(average_color)
-
-        plt.cla()
-        plt.plot(x_axis, y_axis, color="blue")
-        for y in cut_y_points:
-            plt.axvline(x=y, color="red")
-        plt.savefig(os.path.join(output_folder_path, f"{index:0>3}_fig.png"))
-        """
+        # __save_cut_point_plot(image, cut_y_points, os.path.join(output_folder_path, f"{index:0>3}_fig.png"))
 
         for i in range(len(cut_y_points) - 1):
             y_from = cut_y_points[i]
