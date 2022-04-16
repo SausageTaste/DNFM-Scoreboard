@@ -3,7 +3,7 @@ import os
 from PIL import Image
 
 
-SRC_IMAGE_FOLDER_PATH = r"C:\Users\woos8\Videos\DNFM\DNFM"
+SRC_IMAGE_FOLDER_PATH = r"C:\Users\woos8\Videos\DNFM\아수라 2022.04.17"
 
 TOP_CROP_Y = 0.25
 BOTTOM_CROP_Y = 0.77
@@ -11,6 +11,15 @@ BOTTOM_CROP_Y = 0.77
 LEFT_MOST_CROP_X = 0.15
 RIGHT_MOST_CROP_X = 0.85
 BETWEEN_RANK_AND_FACE_X = 0.1
+
+
+def __crop_ranking_area(image: Image):
+    return image.crop((
+        round(image.width * 179 / 1280),
+        round(image.height * 167 / 720),
+        round(image.width * 1251 / 1280),
+        round(image.height * 585 / 720)
+    ))
 
 
 def main():
@@ -26,29 +35,9 @@ def main():
             continue
 
         image = Image.open(item_path)
-        image = image.crop((
-            LEFT_MOST_CROP_X * image.width,
-            TOP_CROP_Y * image.height,
-            RIGHT_MOST_CROP_X * image.width,
-            BOTTOM_CROP_Y * image.height
-        ))
+        image = __crop_ranking_area(image)
 
-        image_part_name = image.crop((
-            0,
-            0,
-            BETWEEN_RANK_AND_FACE_X * image.width,
-            image.height
-        ))
-
-        image_part_score = image.crop((
-            0.86 * image.width,
-            0,
-            image.width,
-            image.height
-        ))
-
-        image_part_name.save(os.path.join(output_folder_path, f"{index:0>3}_name.png"))
-        image_part_score.save(os.path.join(output_folder_path, f"{index:0>3}_score.png"))
+        image.save(os.path.join(output_folder_path, f"{index:0>3}.png"), format="png")
 
 
 if "__main__" == __name__:
