@@ -4,14 +4,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 
-SRC_IMAGE_FOLDER_PATH = r"C:\Users\woos8\Videos\DNFM\New folder"
-
-TOP_CROP_Y = 0.25
-BOTTOM_CROP_Y = 0.77
-
-LEFT_MOST_CROP_X = 0.15
-RIGHT_MOST_CROP_X = 0.85
-BETWEEN_RANK_AND_FACE_X = 0.1
+SRC_IMAGE_FOLDER_PATH = r"C:\Users\woos8\Videos\DNFM\엘마 2022.04.17"
 
 
 def __crop_ranking_area(image: Image):
@@ -110,10 +103,25 @@ def main():
             y_from = cut_y_points[i]
             y_to = cut_y_points[i + 1]
             one_banner = image.crop((0, y_from, image.width, y_to))
-            if one_banner.height / image.height < 85 / 418:
+            if one_banner.height * 418 < image.height * 85:  # one_banner.height / image.height < 85 / 418
                 continue
-            output_path = os.path.join(output_folder_path, f"{index:0>3}_{i:0>3}.png")
-            one_banner.save(output_path, format="png")
+            # one_banner.save(os.path.join(output_folder_path, f"{index:0>3}_{i:0>3}.png"), format="png")
+
+            rank_part = one_banner.crop((
+                one_banner.width * 9 / 1072,
+                0,
+                one_banner.width * 100 / 1072,
+                one_banner.height
+            ))
+            rank_part.save(os.path.join(output_folder_path, f"{index:0>3}_{i:0>3}_rank.png"), format="png")
+
+            score_part = one_banner.crop((
+                one_banner.width * 797 / 1072,
+                0,
+                one_banner.width * 918 / 1072,
+                one_banner.height
+            ))
+            score_part.save(os.path.join(output_folder_path, f"{index:0>3}_{i:0>3}_score.png"), format="png")
 
 
 if "__main__" == __name__:
