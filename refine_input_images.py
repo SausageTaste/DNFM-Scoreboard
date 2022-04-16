@@ -8,8 +8,9 @@ SRC_IMAGE_FOLDER_PATH = r"C:\Users\woos8\Videos\DNFM\DNFM"
 TOP_CROP_Y = 0.25
 BOTTOM_CROP_Y = 0.77
 
-LEFT_MOST_CROP_X = 0.285
+LEFT_MOST_CROP_X = 0.15
 RIGHT_MOST_CROP_X = 0.85
+BETWEEN_RANK_AND_FACE_X = 0.1
 
 
 def main():
@@ -35,12 +36,12 @@ def main():
         image_part_name = image.crop((
             0,
             0,
-            0.5 * image.width,
+            BETWEEN_RANK_AND_FACE_X * image.width,
             image.height
         ))
 
         image_part_score = image.crop((
-            0.5 * image.width,
+            0.86 * image.width,
             0,
             image.width,
             image.height
