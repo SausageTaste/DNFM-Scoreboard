@@ -8,13 +8,29 @@ SRC_ROOT_PATH = r"C:\Users\woos8\Desktop\Captures"
 OUTPUT_FOL_PATH = r"C:\Users\woos8\Desktop\Refined"
 
 
-def __crop_ranking_area(image: Image):
+def __crop_ranking_area(image: Image) -> Image:
     return image.crop((
         round(image.width * 179 / 1280),
         round(image.height * 167 / 720),
         round(image.width * 1251 / 1280),
         round(image.height * 585 / 720)
     ))
+
+
+# https://stackoverflow.com/a/42054155
+def __change_contrast(img, level):
+    factor = (259 * (level + 255)) / (255 * (259 - level))
+    def contrast(c):
+        value = 128 + factor * (c - 128)
+        return round(max(0, min(255, value)))
+    return img.point(contrast)
+
+
+def __make_image_with_high_contrast(image: Image) -> Image:
+    image = ImageOps.invert(image)
+    image = __change_contrast(image, 100)
+    image = image.convert("L")
+    return image
 
 
 def __iter_image_average_colors_in_column(image: Image, x_coord: int):
@@ -114,7 +130,7 @@ def __do_for_one(src_image_folder_path: str):
                 one_banner.width * 100 / 1072,
                 one_banner.height
             ))
-            rank_part = ImageOps.invert(rank_part)
+            rank_part = __make_image_with_high_contrast(rank_part)
             rank_part.save(os.path.join(output_folder_path, f"{index:0>3}_{i:0>3}_rank.png"), format="png")
 
             score_part = one_banner.crop((
@@ -123,7 +139,7 @@ def __do_for_one(src_image_folder_path: str):
                 one_banner.width * 918 / 1072,
                 one_banner.height
             ))
-            score_part = ImageOps.invert(score_part)
+            score_part = __make_image_with_high_contrast(score_part)
             score_part.save(os.path.join(output_folder_path, f"{index:0>3}_{i:0>3}_score.png"), format="png")
 
 
