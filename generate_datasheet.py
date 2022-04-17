@@ -49,9 +49,6 @@ class ScoreMap:
             self.__dict[rank] = []
             return self.__dict[rank]
 
-    def get_max_rank(self):
-        return max(self.__dict.keys())
-
     def get_selected_score(self, rank: int):
         score_list = set(self[rank])
 
@@ -69,7 +66,7 @@ class ScoreMap:
     def make_report_text(self) -> str:
         output = ""
 
-        for i in range(1, self.get_max_rank() + 1):
+        for i in range(1, self.__get_max_rank() + 1):
             score_set = set(self[i])
             output += f"{i:>3}: "
 
@@ -85,14 +82,17 @@ class ScoreMap:
     def make_csv_data(self) -> str:
         output_csv_data = ""
 
-        for i in range(100):
+        for i in range(1, 101):
             selected_score = self.get_selected_score(i)
             if selected_score is None:
-                output_csv_data += f"{i + 1},\n"
+                output_csv_data += f"{i},\n"
             else:
-                output_csv_data += f"{i + 1},{selected_score}\n"
+                output_csv_data += f"{i},{selected_score}\n"
 
         return output_csv_data
+
+    def __get_max_rank(self):
+        return max(self.__dict.keys())
 
     @staticmethod
     def __select_max_that_doesnt_exceed(numbers: iter, upper_bound: int) -> int:
