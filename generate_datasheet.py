@@ -87,8 +87,8 @@ def __print_score_map(score_map: dict):
 def __build_score_map():
     score_map = {}
     for rank_image_path, score_image_path in __iter_rank_score_image_path_pair():
-        str_ranks = tes.image_to_string(rank_image_path, lang='ENG', config='--psm 4 -c preserve_interword_spaces=1')
-        str_scores = tes.image_to_string(score_image_path, lang='ENG', config='--psm 4 -c preserve_interword_spaces=1')
+        str_ranks = tes.image_to_string(rank_image_path, lang='ENG', config='--psm 6')
+        str_scores = tes.image_to_string(score_image_path, lang='ENG', config='--psm 6')
         rank_values = list(__get_integers_from_str(str_ranks))
         score_values = list(__get_integers_from_str(str_scores))
         if len(rank_values) != len(score_values):
