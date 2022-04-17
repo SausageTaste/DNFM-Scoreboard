@@ -15,6 +15,21 @@ def __generate_data_from_csv(csv_file_path: str):
                 yield int(rank_str), int(score_str)
 
 
+def __check_ranking_list_validity(score_list: list):
+    last_score = 999999
+
+    for x in score_list:
+        if x is None:
+            continue
+
+        if last_score < x:
+            return False
+        else:
+            last_score = x
+
+    return True
+
+
 def __calc_sample_variance(sample_data: list, sample_mean: float):
     summation = 0
     for x in sample_data:
@@ -23,21 +38,33 @@ def __calc_sample_variance(sample_data: list, sample_mean: float):
 
 
 def __do_for_one(csv_file_path: str):
+    print(csv_file_path)
+
     score_list = []
     for rank, score in __generate_data_from_csv(csv_file_path):
         if score is not None:
             score_list.append(score)
 
+    if not __check_ranking_list_validity(score_list):
+        raise RuntimeError(f"Not a valid dataset: {csv_file_path}")
+
     score_average = sum(score_list) / len(score_list)
     score_variance = __calc_sample_variance(score_list, score_average)
-    print(score_average, score_variance)
+
+    print(f"\tmean: {score_average}")
+    print(f"\tvariance: {score_variance}")
 
 
 def main():
     for x in os.listdir(SRC_ROOT_PATH):
         item_path = os.path.join(SRC_ROOT_PATH, x)
-        if os.path.isfile(item_path):
-            __do_for_one(item_path)
+
+        if not os.path.isfile(item_path):
+            continue
+        if not x.endswith(".csv"):
+            continue
+
+        __do_for_one(item_path)
 
 
 if __name__ == '__main__':

@@ -49,21 +49,6 @@ def __make_ranking_list(score_map: dict):
     return ranking_list
 
 
-def __check_ranking_list_validity(ranking_list: list):
-    last_score = 999999
-
-    for x in ranking_list:
-        if x is None:
-            continue
-
-        if last_score < x:
-            return False
-        else:
-            last_score = x
-
-    return True
-
-
 def __make_csv_data(ranking_list: list):
     output_csv_data = ""
 
@@ -133,9 +118,6 @@ def __do_for_one(data_image_fol_path: str):
     output_file_path = os.path.join(OUTPUT_FOL_PATH, f"{os.path.split(data_image_fol_path)[-1]}.txt")
     with open(output_file_path, "w") as file:
         file.write(output_report_data)
-
-    if not __check_ranking_list_validity(ranking_list):
-        print(f'Error! "{data_image_fol_path}" is not valid')
 
     output_csv_data = __make_csv_data(ranking_list)
     output_file_path = os.path.join(OUTPUT_FOL_PATH, f"{os.path.split(data_image_fol_path)[-1]}.csv")
