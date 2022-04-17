@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import pytesseract as tes
 
@@ -32,48 +33,77 @@ def __get_integers_from_str(text: str):
             yield integer_value
 
 
-def __make_ranking_list(score_map: dict):
-    ranking_list = []
+class ScoreMap:
+    def __init__(self):
+        self.__dict = dict()
 
-    for i in range(1, 101):
+    def __getitem__(self, rank: int):
+        return self.get_data(rank)
+
+    def get_data(self, rank: int) -> List[int]:
+        assert isinstance(rank, int)
+
         try:
-            score_list = set(score_map[i])
-            if 1 != len(score_list):
-                ranking_list.append(None)
-            else:
-                ranking_list.append(next(iter(score_list)))
+            return self.__dict[rank]
         except KeyError:
-            ranking_list.append(None)
+            self.__dict[rank] = []
+            return self.__dict[rank]
 
-    assert 100 == len(ranking_list)
-    return ranking_list
+    def get_max_rank(self):
+        return max(self.__dict.keys())
 
+    def get_selected_score(self, rank: int):
+        score_list = set(self[rank])
 
-def __make_csv_data(ranking_list: list):
-    output_csv_data = ""
-
-    for i in range(100):
-        if ranking_list[i] is None:
-            output_csv_data += f"{i + 1},\n"
+        if 0 == len(score_list):
+            return None
+        if 1 == len(score_list):
+            return next(iter(score_list))
         else:
-            output_csv_data += f"{i + 1},{ranking_list[i]}\n"
-
-    return output_csv_data
-
-
-def __make_report_str(score_map: dict):
-    output = ""
-
-    for i in range(1, max(score_map.keys()) + 1):
-        if i in score_map.keys():
-            if 1 == len(set(score_map[i])):
-                output += f"{i:>3}: ok {score_map[i]}\n"
+            if rank > 1:
+                last_value = self.get_selected_score(rank - 1)
             else:
-                output += f"{i:>3}: error {score_map[i]}\n"
-        else:
-            output += f"{i:>3}: null\n"
+                last_value = 9999999999
+            return self.__select_max_that_doesnt_exceed(score_list, last_value)
 
-    return output
+    def make_report_text(self) -> str:
+        output = ""
+
+        for i in range(1, self.get_max_rank() + 1):
+            score_set = set(self[i])
+            output += f"{i:>3}: "
+
+            if 1 == len(score_set):
+                output += f"ok {self.get_selected_score(i)} -> {self[i]}\n"
+            elif 0 == len(score_set):
+                output += "null\n"
+            else:
+                output += f"error {self.get_selected_score(i)} -> {self[i]}\n"
+
+        return output
+
+    def make_csv_data(self) -> str:
+        output_csv_data = ""
+
+        for i in range(100):
+            selected_score = self.get_selected_score(i)
+            if selected_score is None:
+                output_csv_data += f"{i + 1},\n"
+            else:
+                output_csv_data += f"{i + 1},{selected_score}\n"
+
+        return output_csv_data
+
+    @staticmethod
+    def __select_max_that_doesnt_exceed(numbers: iter, upper_bound: int) -> int:
+        number_list = list(numbers)
+        number_list.sort(reverse=True)
+
+        for x in number_list:
+            if x <= upper_bound:
+                return x
+
+        raise RuntimeError()
 
 
 def __iter_rank_score_image_path_pair(data_image_fol_path: str):
@@ -91,11 +121,11 @@ def __iter_rank_score_image_path_pair(data_image_fol_path: str):
         yield rank_image_path, score_image_path
 
 
-def __build_score_map(data_image_fol_path: str):
-    score_map = {}
+def __build_score_map(data_image_fol_path: str) -> ScoreMap:
+    score_map = ScoreMap()
     for rank_image_path, score_image_path in __iter_rank_score_image_path_pair(data_image_fol_path):
-        str_ranks = tes.image_to_string(rank_image_path, lang='ENG', config='--psm 6')
-        str_scores = tes.image_to_string(score_image_path, lang='ENG', config='--psm 6')
+        str_ranks = tes.image_to_string(rank_image_path, lang='ENG', config='--psm 10')
+        str_scores = tes.image_to_string(score_image_path, lang='ENG', config='--psm 10')
         rank_values = list(__get_integers_from_str(str_ranks))
         score_values = list(__get_integers_from_str(str_scores))
         if len(rank_values) != len(score_values):
@@ -103,8 +133,6 @@ def __build_score_map(data_image_fol_path: str):
 
         for j in range(len(rank_values)):
             rank = rank_values[j]
-            if rank not in score_map.keys():
-                score_map[rank] = []
             score_map[rank].append(score_values[j])
 
     return score_map
@@ -112,14 +140,13 @@ def __build_score_map(data_image_fol_path: str):
 
 def __do_for_one(data_image_fol_path: str):
     score_map = __build_score_map(data_image_fol_path)
-    ranking_list = __make_ranking_list(score_map)
 
-    output_report_data = __make_report_str(score_map)
+    output_report_data = score_map.make_report_text()
     output_file_path = os.path.join(OUTPUT_FOL_PATH, f"{os.path.split(data_image_fol_path)[-1]}.txt")
     with open(output_file_path, "w") as file:
         file.write(output_report_data)
 
-    output_csv_data = __make_csv_data(ranking_list)
+    output_csv_data = score_map.make_csv_data()
     output_file_path = os.path.join(OUTPUT_FOL_PATH, f"{os.path.split(data_image_fol_path)[-1]}.csv")
     with open(output_file_path, "w") as file:
         file.write(output_csv_data)
