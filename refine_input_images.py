@@ -150,7 +150,6 @@ def main():
         pass
 
     for x in os.listdir(SRC_ROOT_PATH):
-        if x != "소울": continue
         item_path = os.path.join(SRC_ROOT_PATH, x)
         if os.path.isdir(item_path):
             __do_for_one(item_path)
