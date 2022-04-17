@@ -61,6 +61,9 @@ class ScoreMap:
                 last_value = self.get_selected_score(rank - 1)
             else:
                 last_value = 9999999999
+            if last_value is None:
+                last_value = 9999999999
+
             return self.__select_max_that_doesnt_exceed(score_list, last_value)
 
     def make_report_text(self) -> str:
