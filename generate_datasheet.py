@@ -11,14 +11,22 @@ OUTPUT_FOL_PATH = r"C:\Users\woos8\Desktop\CSV files"
 
 def __get_integers_from_str(text: str):
     for x in text.split("\n"):
+        x = x.replace('x', '1')
         x = x.replace(',', '')
         x = x.replace('‘', '')
         x = x.replace('I', '1')
         x = x.replace(' ', '')
+        x = x.replace('o', '0')
+        x = x.replace('O', '0')
+        x = x.replace('s', '8')
+
+        if not x:
+            continue
 
         try:
             integer_value = int(x)
         except ValueError:
+            # print(repr(x), repr(text))
             continue
         else:
             yield integer_value
@@ -118,12 +126,13 @@ def __build_score_map(data_image_fol_path: str):
 def __do_for_one(data_image_fol_path: str):
     score_map = __build_score_map(data_image_fol_path)
     ranking_list = __make_ranking_list(score_map)
-    __assert_ranking_list_validity(ranking_list)
 
     output_report_data = __make_report_str(score_map)
     output_file_path = os.path.join(OUTPUT_FOL_PATH, f"{os.path.split(data_image_fol_path)[-1]}.txt")
     with open(output_file_path, "w") as file:
         file.write(output_report_data)
+
+    __assert_ranking_list_validity(ranking_list)
 
     output_csv_data = __make_csv_data(ranking_list)
     output_file_path = os.path.join(OUTPUT_FOL_PATH, f"{os.path.split(data_image_fol_path)[-1]}.csv")
