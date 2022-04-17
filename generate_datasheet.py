@@ -79,7 +79,10 @@ def __iter_rank_score_image_path_pair():
 def __print_score_map(score_map: dict):
     for i in range(1, max(score_map.keys()) + 1):
         if i in score_map.keys():
-            print(f"{i:>3}: {score_map[i]}")
+            if 1 == len(set(score_map[i])):
+                print(f"{i:>3}: ok {score_map[i]}")
+            else:
+                print(f"{i:>3}: error {score_map[i]}")
         else:
             print(f"{i:>3}: null")
 
