@@ -10,8 +10,12 @@ DATA_IMAGE_FOL_PATH = r"C:\Users\woos8\Videos\DNFM\엘마 2022.04.17\refine_outp
 
 def __get_integers_from_str(text: str):
     for x in text.split("\n"):
+        x = x.replace(',', '')
+        x = x.replace('‘', '')
+        x = x.replace('I', '1')
+        x = x.replace(' ', '')
+
         try:
-            x = x.replace(',', '')
             integer_value = int(x)
         except ValueError:
             continue
