@@ -1,6 +1,6 @@
 import os
 
-from PIL import Image
+from PIL import Image, ImageOps
 import matplotlib.pyplot as plt
 
 
@@ -114,6 +114,7 @@ def __do_for_one(src_image_folder_path: str):
                 one_banner.width * 100 / 1072,
                 one_banner.height
             ))
+            rank_part = ImageOps.invert(rank_part)
             rank_part.save(os.path.join(output_folder_path, f"{index:0>3}_{i:0>3}_rank.png"), format="png")
 
             score_part = one_banner.crop((
@@ -122,6 +123,7 @@ def __do_for_one(src_image_folder_path: str):
                 one_banner.width * 918 / 1072,
                 one_banner.height
             ))
+            score_part = ImageOps.invert(score_part)
             score_part.save(os.path.join(output_folder_path, f"{index:0>3}_{i:0>3}_score.png"), format="png")
 
 
@@ -132,6 +134,7 @@ def main():
         pass
 
     for x in os.listdir(SRC_ROOT_PATH):
+        if x != "소울": continue
         item_path = os.path.join(SRC_ROOT_PATH, x)
         if os.path.isdir(item_path):
             __do_for_one(item_path)
