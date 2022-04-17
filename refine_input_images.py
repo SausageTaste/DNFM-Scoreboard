@@ -4,7 +4,8 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 
-SRC_IMAGE_FOLDER_PATH = r"C:\Users\woos8\Videos\DNFM\엘마 2022.04.17"
+SRC_ROOT_PATH = r"C:\Users\woos8\Desktop\Captures"
+OUTPUT_FOL_PATH = r"C:\Users\woos8\Desktop\Refined"
 
 
 def __crop_ranking_area(image: Image):
@@ -77,15 +78,15 @@ def __save_cut_point_plot(image: Image, cut_y_points: list, output_file_path: st
     plt.savefig(output_file_path)
 
 
-def main():
-    output_folder_path = os.path.join(SRC_IMAGE_FOLDER_PATH, "refine_output")
+def __do_for_one(src_image_folder_path: str):
+    output_folder_path = os.path.join(OUTPUT_FOL_PATH, os.path.split(src_image_folder_path)[-1])
     try:
         os.mkdir(output_folder_path)
     except FileExistsError:
         pass
 
-    for index, item_name_ext in enumerate(os.listdir(SRC_IMAGE_FOLDER_PATH)):
-        item_path = os.path.join(SRC_IMAGE_FOLDER_PATH, item_name_ext)
+    for index, item_name_ext in enumerate(os.listdir(src_image_folder_path)):
+        item_path = os.path.join(src_image_folder_path, item_name_ext)
         if not os.path.isfile(item_path):
             continue
 
@@ -122,6 +123,19 @@ def main():
                 one_banner.height
             ))
             score_part.save(os.path.join(output_folder_path, f"{index:0>3}_{i:0>3}_score.png"), format="png")
+
+
+def main():
+    try:
+        os.mkdir(OUTPUT_FOL_PATH)
+    except FileExistsError:
+        pass
+
+    for x in os.listdir(SRC_ROOT_PATH):
+        item_path = os.path.join(SRC_ROOT_PATH, x)
+        if os.path.isdir(item_path):
+            __do_for_one(item_path)
+            print(f"Done: {item_path}")
 
 
 if "__main__" == __name__:

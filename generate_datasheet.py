@@ -5,7 +5,8 @@ import pytesseract as tes
 
 tes.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe'
 
-DATA_IMAGE_FOL_PATH = r"C:\Users\woos8\Videos\DNFM\엘마 2022.04.17\refine_output"
+SRC_ROOT_PATH = r"C:\Users\woos8\Desktop\Refined"
+OUTPUT_FOL_PATH = r"C:\Users\woos8\Desktop\CSV files"
 
 
 def __get_integers_from_str(text: str):
@@ -65,35 +66,39 @@ def __make_csv_data(ranking_list: list):
     return output_csv_data
 
 
-def __iter_rank_score_image_path_pair():
-    for x in os.listdir(DATA_IMAGE_FOL_PATH):
+def __make_report_str(score_map: dict):
+    output = ""
+
+    for i in range(1, max(score_map.keys()) + 1):
+        if i in score_map.keys():
+            if 1 == len(set(score_map[i])):
+                output += f"{i:>3}: ok {score_map[i]}\n"
+            else:
+                output += f"{i:>3}: error {score_map[i]}\n"
+        else:
+            output += f"{i:>3}: null\n"
+
+    return output
+
+
+def __iter_rank_score_image_path_pair(data_image_fol_path: str):
+    for x in os.listdir(data_image_fol_path):
         if not x.endswith("_score.png"):
             continue
 
-        score_image_path = os.path.join(DATA_IMAGE_FOL_PATH, x)
+        score_image_path = os.path.join(data_image_fol_path, x)
         assert os.path.isfile(score_image_path)
 
         rank_image_name_ext = x.rstrip("_score.png") + "_rank.png"
-        rank_image_path = os.path.join(DATA_IMAGE_FOL_PATH, rank_image_name_ext)
+        rank_image_path = os.path.join(data_image_fol_path, rank_image_name_ext)
         assert os.path.isfile(rank_image_path)
 
         yield rank_image_path, score_image_path
 
 
-def __print_score_map(score_map: dict):
-    for i in range(1, max(score_map.keys()) + 1):
-        if i in score_map.keys():
-            if 1 == len(set(score_map[i])):
-                print(f"{i:>3}: ok {score_map[i]}")
-            else:
-                print(f"{i:>3}: error {score_map[i]}")
-        else:
-            print(f"{i:>3}: null")
-
-
-def __build_score_map():
+def __build_score_map(data_image_fol_path: str):
     score_map = {}
-    for rank_image_path, score_image_path in __iter_rank_score_image_path_pair():
+    for rank_image_path, score_image_path in __iter_rank_score_image_path_pair(data_image_fol_path):
         str_ranks = tes.image_to_string(rank_image_path, lang='ENG', config='--psm 6')
         str_scores = tes.image_to_string(score_image_path, lang='ENG', config='--psm 6')
         rank_values = list(__get_integers_from_str(str_ranks))
@@ -110,17 +115,37 @@ def __build_score_map():
     return score_map
 
 
-def main():
-    score_map = __build_score_map()
-    __print_score_map(score_map)
+def __do_for_one(data_image_fol_path: str):
+    score_map = __build_score_map(data_image_fol_path)
     ranking_list = __make_ranking_list(score_map)
     __assert_ranking_list_validity(ranking_list)
-    output_csv_data = __make_csv_data(ranking_list)
 
-    output_file_path = os.path.join(DATA_IMAGE_FOL_PATH, "output.csv")
+    output_report_data = __make_report_str(score_map)
+    output_file_path = os.path.join(OUTPUT_FOL_PATH, f"{os.path.split(data_image_fol_path)[-1]}.txt")
+    with open(output_file_path, "w") as file:
+        file.write(output_report_data)
+
+    output_csv_data = __make_csv_data(ranking_list)
+    output_file_path = os.path.join(OUTPUT_FOL_PATH, f"{os.path.split(data_image_fol_path)[-1]}.csv")
     with open(output_file_path, "w") as file:
         file.write(output_csv_data)
-    print(output_file_path)
+
+    print("Done:", output_file_path)
+
+
+def main():
+    try:
+        os.mkdir(OUTPUT_FOL_PATH)
+    except FileExistsError:
+        pass
+
+    for x in os.listdir(SRC_ROOT_PATH):
+        item_path = os.path.join(SRC_ROOT_PATH, x)
+        if os.path.isdir(item_path):
+            try:
+                __do_for_one(item_path)
+            except RuntimeError:
+                print("Failed:", item_path)
 
 
 if "__main__" == __name__:

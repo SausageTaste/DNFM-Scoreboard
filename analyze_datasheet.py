@@ -1,5 +1,6 @@
+import os
 
-CSV_FILE_PATH = r"C:\Users\woos8\Videos\DNFM\엘마 2022.04.17\refine_output\output.csv"
+SRC_ROOT_PATH = r"C:\Users\woos8\Desktop\CSV files"
 
 
 def __generate_data_from_csv(csv_file_path: str):
@@ -21,15 +22,22 @@ def __calc_sample_variance(sample_data: list, sample_mean: float):
     return summation / (len(sample_data) - 1)
 
 
-def main():
+def __do_for_one(csv_file_path: str):
     score_list = []
-    for rank, score in __generate_data_from_csv(CSV_FILE_PATH):
+    for rank, score in __generate_data_from_csv(csv_file_path):
         if score is not None:
             score_list.append(score)
 
     score_average = sum(score_list) / len(score_list)
     score_variance = __calc_sample_variance(score_list, score_average)
     print(score_average, score_variance)
+
+
+def main():
+    for x in os.listdir(SRC_ROOT_PATH):
+        item_path = os.path.join(SRC_ROOT_PATH, x)
+        if os.path.isfile(item_path):
+            __do_for_one(item_path)
 
 
 if __name__ == '__main__':
