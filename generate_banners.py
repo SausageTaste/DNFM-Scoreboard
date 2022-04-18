@@ -1,4 +1,5 @@
 import os
+import multiprocessing as mp
 
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -78,8 +79,35 @@ def __save_cut_point_plot(image: Image, cut_y_points: list, output_file_path: st
     plt.savefig(output_file_path)
 
 
+def __make_output_folder_path(src_image_folder_path: str):
+    output = os.path.relpath(src_image_folder_path, SRC_ROOT_PATH)
+    output = output.replace('\\', '-')
+    output = output.replace('/', '-')
+    return os.path.join(OUTPUT_FOL_PATH, output)
+
+
+def __do_for_one_image(src_image_path: str, output_image_path_prefix: str):
+    image = Image.open(src_image_path)
+    image = __crop_ranking_area(image)
+    # image.save(os.path.join(output_folder_path, f"{index:0>3}.png"), format="png")
+
+    cut_y_points = __find_cut_points(image)
+    if 0 != cut_y_points[0]:
+        cut_y_points.insert(0, 0)
+    cut_y_points.append(image.height)
+    # __save_cut_point_plot(image, cut_y_points, os.path.join(output_folder_path, f"{index:0>3}_fig.png"))
+
+    for i in range(len(cut_y_points) - 1):
+        y_from = cut_y_points[i]
+        y_to = cut_y_points[i + 1]
+        one_banner = image.crop((0, y_from, image.width, y_to))
+        if one_banner.height * 418 < image.height * 85:  # one_banner.height / image.height < 85 / 418
+            continue
+        one_banner.save(f"{output_image_path_prefix}{i:0>3}.png", format="png")
+
+
 def __do_for_one(src_image_folder_path: str):
-    output_folder_path = os.path.join(OUTPUT_FOL_PATH, os.path.split(src_image_folder_path)[-1])
+    output_folder_path = __make_output_folder_path(src_image_folder_path)
     try:
         os.mkdir(output_folder_path)
     except FileExistsError:
@@ -90,23 +118,9 @@ def __do_for_one(src_image_folder_path: str):
         if not os.path.isfile(item_path):
             continue
 
-        image = Image.open(item_path)
-        image = __crop_ranking_area(image)
-        # image.save(os.path.join(output_folder_path, f"{index:0>3}.png"), format="png")
+        __do_for_one_image(item_path, os.path.join(output_folder_path, f"{index:0>3}_"))
 
-        cut_y_points = __find_cut_points(image)
-        if 0 != cut_y_points[0]:
-            cut_y_points.insert(0, 0)
-        cut_y_points.append(image.height)
-        # __save_cut_point_plot(image, cut_y_points, os.path.join(output_folder_path, f"{index:0>3}_fig.png"))
-
-        for i in range(len(cut_y_points) - 1):
-            y_from = cut_y_points[i]
-            y_to = cut_y_points[i + 1]
-            one_banner = image.crop((0, y_from, image.width, y_to))
-            if one_banner.height * 418 < image.height * 85:  # one_banner.height / image.height < 85 / 418
-                continue
-            one_banner.save(os.path.join(output_folder_path, f"{index:0>3}_{i:0>3}.png"), format="png")
+    print(f"Done: {output_folder_path}")
 
 
 def main():
@@ -115,11 +129,13 @@ def main():
     except FileExistsError:
         pass
 
-    for x in os.listdir(SRC_ROOT_PATH):
-        item_path = os.path.join(SRC_ROOT_PATH, x)
-        if os.path.isdir(item_path):
-            __do_for_one(item_path)
-            print(f"Done: {item_path}")
+    loc_list = []
+    for loc, folders, files in os.walk(SRC_ROOT_PATH):
+        if len(files):
+            loc_list.append(loc)
+
+    with mp.Pool() as p:
+        p.map(__do_for_one, loc_list)
 
 
 if "__main__" == __name__:
