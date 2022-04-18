@@ -61,7 +61,7 @@ def __find_min_max_scores():
     min_score = 999999999999
     max_score = -99999999999
 
-    for csv_path in __gen_work_csv_paths():
+    for csv_path, file_name in __gen_work_csv_paths():
         for rank, score in __generate_data_from_csv(csv_path):
             if score is None:
                 continue
@@ -78,10 +78,10 @@ def __save_mountain_scatter(csv_file_path, output_file_path, title, score_averag
     plt.cla()
     plt.title(title, fontname="Malgun Gothic")
     plt.ylim((y_range_min, y_range_max))
-    plt.axhline(y=score_average, alpha=0.5)
+    plt.axhline(y=score_average, alpha=0.2)
     for rank, score in __generate_data_from_csv(csv_file_path):
         if score is None:
-            plt.axvline(x=rank, color="red", alpha=0.5)
+            plt.axvline(x=rank, color="red", alpha=0.2)
         else:
             x_axis.append(rank)
             y_axis.append(score)
@@ -98,7 +98,10 @@ def __gen_work_csv_paths():
         if not os.path.isfile(item_path):
             continue
 
-        yield item_path
+        loc, file_name_ext = os.path.split(item_path)
+        file_name, file_ext = os.path.splitext(file_name_ext)
+
+        yield item_path, file_name
 
 
 def main():
@@ -109,16 +112,12 @@ def main():
 
     score_min, score_max = __find_min_max_scores()
 
-    for csv_path in __gen_work_csv_paths():
-        loc, file_name_ext = os.path.split(csv_path)
-        file_name, file_ext = os.path.splitext(file_name_ext)
-
+    for csv_path, file_name in __gen_work_csv_paths():
         pure_score_list = __make_pure_score_list(csv_path)
         if not __check_ranking_list_validity(pure_score_list):
             print(f"Not a valid dataset: {csv_path}")
 
         score_average = sum(pure_score_list) / len(pure_score_list)
-        score_variance = __calc_sample_variance(pure_score_list, score_average)
 
         __save_mountain_scatter(
             csv_path,
@@ -128,6 +127,26 @@ def main():
             score_min - 10,
             score_max + 10,
         )
+
+    plt.cla()
+    fig, ax = plt.subplots()
+    x_data = []
+    y_data = []
+    n_data = []
+
+    for csv_path, file_name in __gen_work_csv_paths():
+        pure_score_list = __make_pure_score_list(csv_path)
+        score_average = sum(pure_score_list) / len(pure_score_list)
+        score_variance = __calc_sample_variance(pure_score_list, score_average)
+
+        x_data.append(score_variance)
+        y_data.append(score_average)
+        n_data.append(file_name)
+
+    ax.scatter(x_data, y_data)
+    for i, name in enumerate(n_data):
+        ax.annotate(name, (x_data[i], y_data[i]), fontname="Malgun Gothic")
+    plt.savefig(f'{OUTPUT_FOL_PATH}/mean_var.png')
 
 
 if __name__ == '__main__':
