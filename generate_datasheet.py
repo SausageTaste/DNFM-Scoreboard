@@ -1,11 +1,7 @@
 import os
 import json
-from typing import List, Dict
+from typing import Dict
 
-import pytesseract as tes
-
-
-tes.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe'
 
 SRC_ROOT_PATH = r"C:\Users\woos8\Desktop\Detected"
 OUTPUT_FOL_PATH = r"C:\Users\woos8\Desktop\CSV files"
@@ -39,9 +35,6 @@ class ScoreMap:
         self.__dict = dict()
 
     def __getitem__(self, rank: int):
-        return self.get_data(rank)
-
-    def get_data(self, rank: int) -> List[int]:
         assert isinstance(rank, int)
 
         try:
@@ -184,27 +177,27 @@ def __gen_json_path():
             yield file_path
 
 
-def __make_output_file_name(json_file_path: str):
+def __make_output_file_path(json_file_path: str):
     output = os.path.relpath(json_file_path, SRC_ROOT_PATH)
     output = output.rstrip(".json")
     output = output.replace("\\", "-")
     output = output.replace("/", "-")
-    return output
+    return os.path.join(OUTPUT_FOL_PATH, output)
 
 
 def __do_for_one(json_file_path: str):
-    output_file_loc_name = os.path.join(OUTPUT_FOL_PATH, __make_output_file_name(json_file_path))
+    output_file_loc_name = __make_output_file_path(json_file_path)
     db = __load_detected_data_json(json_file_path)
     score_map = __build_score_map(db)
 
     output_report_data = score_map.make_report_text()
     output_file_path = output_file_loc_name + ".txt"
-    with open(output_file_path, "w") as file:
+    with open(output_file_path, "w", encoding="utf8") as file:
         file.write(output_report_data)
 
     output_csv_data = score_map.make_csv_data()
     output_file_path = output_file_loc_name + ".csv"
-    with open(output_file_path, "w") as file:
+    with open(output_file_path, "w", encoding="utf8") as file:
         file.write(output_csv_data)
 
     print("Done:", output_file_path)
