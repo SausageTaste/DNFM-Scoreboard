@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Dict
+from typing import List, Dict, TextIO
 
 
 SRC_ROOT_PATH = r"C:\Users\woos8\Desktop\Detected"
@@ -30,9 +30,28 @@ def __get_integers_from_str(text: str):
             yield integer_value
 
 
+class ScoreMapRecord:
+    def __init__(self):
+        self.scores = []
+        self.rank_str = []
+        self.score_str = []
+
+    def __str__(self):
+        return f'ScoreMapRecord{{ scores: {self.scores}, rank_str: {self.rank_str}, score_str: {self.score_str} }}'
+
+    def is_complete(self):
+        if not len(self.scores):
+            return False
+        if not len(self.rank_str):
+            return False
+        if not len(self.score_str):
+            return False
+        return True
+
+
 class ScoreMap:
     def __init__(self):
-        self.__dict = dict()
+        self.__dict: Dict[int, ScoreMapRecord] = dict()
 
     def __getitem__(self, rank: int):
         assert isinstance(rank, int)
@@ -40,41 +59,29 @@ class ScoreMap:
         try:
             return self.__dict[rank]
         except KeyError:
-            self.__dict[rank] = []
+            self.__dict[rank] = ScoreMapRecord()
             return self.__dict[rank]
 
     def get_selected_score(self, rank: int):
-        score_list = set(self[rank])
+        score_list = set(self[rank].scores)
+
+        if rank > 1:
+            last_value = self.get_selected_score(rank - 1)
+        else:
+            last_value = 9999999999
+        if last_value is None:
+            last_value = 9999999999
 
         if 0 == len(score_list):
             return None
         if 1 == len(score_list):
-            return next(iter(score_list))
+            selected = next(iter(score_list))
+            if selected > last_value:
+                return None
+            else:
+                return selected
         else:
-            if rank > 1:
-                last_value = self.get_selected_score(rank - 1)
-            else:
-                last_value = 9999999999
-            if last_value is None:
-                last_value = 9999999999
-
             return self.__select_max_that_doesnt_exceed(score_list, last_value)
-
-    def make_report_text(self) -> str:
-        output = ""
-
-        for i in range(1, self.__get_max_rank() + 1):
-            score_set = set(self[i])
-            output += f"{i:>3}: "
-
-            if 1 == len(score_set):
-                output += f"ok {self.get_selected_score(i)} -> {self[i]}\n"
-            elif 0 == len(score_set):
-                output += "null\n"
-            else:
-                output += f"error {self.get_selected_score(i)} -> {self[i]}\n"
-
-        return output
 
     def make_csv_data(self) -> str:
         output_csv_data = ""
@@ -88,7 +95,7 @@ class ScoreMap:
 
         return output_csv_data
 
-    def __get_max_rank(self):
+    def get_max_rank(self):
         return max(self.__dict.keys())
 
     @staticmethod
@@ -107,23 +114,27 @@ class TextSourceRecord:
     def __init__(self):
         self.rank = None
         self.score = None
+        self.file_path = None
 
     def __str__(self):
-        return f'{{rank: {repr(self.rank)}, score: {repr(self.score)}}}'
+        return f'TextSourceRecord{{rank: {repr(self.rank)}, score: {repr(self.score)}, file: {repr(self.file_path)}}}'
 
 
 class TextSourceDB:
     def __init__(self):
         self.__data: Dict[int, TextSourceRecord] = {}
 
-    def items(self):
-        return self.__data.items()
+    def __iter__(self):
+        return iter(self.__data.values())
 
     def give_rank_str(self, file_index: int, possibly_rank: str):
         self.__get_record(file_index).rank = possibly_rank
 
     def give_score_str(self, file_index: int, possibly_score: str):
         self.__get_record(file_index).score = possibly_score
+
+    def give_file_path(self, file_index: int, file_path: str):
+        self.__get_record(file_index).file_path = file_path
 
     def __get_record(self, file_index: int):
         assert isinstance(file_index, int)
@@ -142,6 +153,7 @@ def __load_detected_data_json(json_file_path: str):
         if x["file_name"].endswith("_rank"):
             file_index = int(x["file_name"].rstrip("_rank"))
             db.give_rank_str(file_index, x["image_content"])
+            db.give_file_path(file_index, x["file_path"])
         elif x["file_name"].endswith("_score"):
             file_index = int(x["file_name"].rstrip("_score"))
             db.give_score_str(file_index, x["image_content"])
@@ -151,20 +163,52 @@ def __load_detected_data_json(json_file_path: str):
     return db
 
 
-def __build_score_map(db: TextSourceDB) -> ScoreMap:
+def __build_score_map(db: TextSourceDB):
     score_map = ScoreMap()
+    error_records = []
 
-    for index, record in db.items():
+    for record in db:
         rank_values = list(__get_integers_from_str(record.rank))
         score_values = list(__get_integers_from_str(record.score))
-        if len(rank_values) != len(score_values):
+
+        if 0 == len(rank_values):
+            error_records.append(record)
             continue
+        elif 1 == len(rank_values) and 1 == len(score_values):
+            rank = rank_values[0]
+            score_record = score_map[rank]
+            score_record.scores.append(score_values[0])
+            score_record.rank_str.append(record.rank)
+            score_record.score_str.append(record.score)
+        else:
+            raise RuntimeError()
 
-        for j in range(len(rank_values)):
-            rank = rank_values[j]
-            score_map[rank].append(score_values[j])
+    return score_map, error_records
 
-    return score_map
+
+def __make_report_file(file: TextIO, score_map: ScoreMap, error_records: List[TextSourceRecord]):
+    for i in range(1, score_map.get_max_rank() + 1):
+        record = score_map[i]
+        selected_score = score_map.get_selected_score(i)
+
+        if selected_score is None:
+            file.write(f'{i:0>3} ERROR\n')
+        elif 1 != len(set(record.scores)):
+            file.write(f'{i:0>3} WARNING\n')
+        else:
+            file.write(f'{i:0>3}\n')
+
+        file.write(f'\trank strings:   {record.rank_str}\n')
+        file.write(f'\tscore strings:  {record.score_str}\n')
+        file.write(f'\tscores:         {record.scores}\n')
+        file.write(f'\tselected score: {selected_score}\n')
+
+    file.write(f'\n')
+
+    for x in error_records:
+        file.write(f'{x.file_path}\n')
+        file.write(f'\trank:  {repr(x.rank)}\n')
+        file.write(f'\tscore: {repr(x.score)}\n')
 
 
 def __gen_json_path():
@@ -188,12 +232,10 @@ def __make_output_file_path(json_file_path: str):
 def __do_for_one(json_file_path: str):
     output_file_loc_name = __make_output_file_path(json_file_path)
     db = __load_detected_data_json(json_file_path)
-    score_map = __build_score_map(db)
+    score_map, error_records = __build_score_map(db)
 
-    output_report_data = score_map.make_report_text()
-    output_file_path = output_file_loc_name + ".txt"
-    with open(output_file_path, "w", encoding="utf8") as file:
-        file.write(output_report_data)
+    with open(f'{output_file_loc_name}.txt', "w", encoding="utf8") as file:
+        __make_report_file(file, score_map, error_records)
 
     output_csv_data = score_map.make_csv_data()
     output_file_path = output_file_loc_name + ".csv"
