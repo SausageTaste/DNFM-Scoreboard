@@ -66,6 +66,8 @@ def main():
     except FileExistsError:
         pass
 
+    print("This takes minutes. Please be patient.")
+
     start_time = time.time()
     loc_list = list(__gen_work_loc())
     with mp.Pool() as p:
