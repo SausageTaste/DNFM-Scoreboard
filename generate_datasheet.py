@@ -1,12 +1,13 @@
 import os
-from typing import List
+import json
+from typing import List, Dict
 
 import pytesseract as tes
 
 
 tes.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe'
 
-SRC_ROOT_PATH = r"C:\Users\woos8\Desktop\Refined"
+SRC_ROOT_PATH = r"C:\Users\woos8\Desktop"
 OUTPUT_FOL_PATH = r"C:\Users\woos8\Desktop\CSV files"
 
 
@@ -109,28 +110,60 @@ class ScoreMap:
         raise RuntimeError()
 
 
-def __iter_rank_score_image_path_pair(data_image_fol_path: str):
-    for x in os.listdir(data_image_fol_path):
-        if not x.endswith("_score.png"):
-            continue
+class TextSourceRecord:
+    def __init__(self):
+        self.rank = None
+        self.score = None
 
-        score_image_path = os.path.join(data_image_fol_path, x)
-        assert os.path.isfile(score_image_path)
-
-        rank_image_name_ext = x.rstrip("_score.png") + "_rank.png"
-        rank_image_path = os.path.join(data_image_fol_path, rank_image_name_ext)
-        assert os.path.isfile(rank_image_path)
-
-        yield rank_image_path, score_image_path
+    def __str__(self):
+        return f'{{rank: {repr(self.rank)}, score: {repr(self.score)}}}'
 
 
-def __build_score_map(data_image_fol_path: str) -> ScoreMap:
+class TextSourceDB:
+    def __init__(self):
+        self.__data: Dict[int, TextSourceRecord] = {}
+
+    def items(self):
+        return self.__data.items()
+
+    def give_rank_str(self, file_index: int, possibly_rank: str):
+        self.__get_record(file_index).rank = possibly_rank
+
+    def give_score_str(self, file_index: int, possibly_score: str):
+        self.__get_record(file_index).score = possibly_score
+
+    def __get_record(self, file_index: int):
+        assert isinstance(file_index, int)
+        if file_index not in self.__data.keys():
+            self.__data[file_index] = TextSourceRecord()
+        return self.__data[file_index]
+
+
+def __load_detected_data_json(json_file_path: str):
+    with open(json_file_path, "r", encoding="utf8") as file:
+        json_data = json.load(file)
+
+    db = TextSourceDB()
+
+    for x in json_data:
+        if x["file_name"].endswith("_rank"):
+            file_index = int(x["file_name"].rstrip("_rank"))
+            db.give_rank_str(file_index, x["image_content"])
+        elif x["file_name"].endswith("_score"):
+            file_index = int(x["file_name"].rstrip("_score"))
+            db.give_score_str(file_index, x["image_content"])
+        else:
+            raise RuntimeError()
+
+    return db
+
+
+def __build_score_map(db: TextSourceDB) -> ScoreMap:
     score_map = ScoreMap()
-    for rank_image_path, score_image_path in __iter_rank_score_image_path_pair(data_image_fol_path):
-        str_ranks = tes.image_to_string(rank_image_path, lang='ENG', config='--psm 10')
-        str_scores = tes.image_to_string(score_image_path, lang='ENG', config='--psm 10')
-        rank_values = list(__get_integers_from_str(str_ranks))
-        score_values = list(__get_integers_from_str(str_scores))
+
+    for index, record in db.items():
+        rank_values = list(__get_integers_from_str(record.rank))
+        score_values = list(__get_integers_from_str(record.score))
         if len(rank_values) != len(score_values):
             continue
 
@@ -141,16 +174,36 @@ def __build_score_map(data_image_fol_path: str) -> ScoreMap:
     return score_map
 
 
-def __do_for_one(data_image_fol_path: str):
-    score_map = __build_score_map(data_image_fol_path)
+def __gen_json_path():
+    for loc, folders, files in os.walk(SRC_ROOT_PATH):
+        for file_name_ext in files:
+            if not file_name_ext.endswith(".json"):
+                continue
+
+            file_path = os.path.normpath(os.path.join(loc, file_name_ext))
+            yield file_path
+
+
+def __make_output_file_name(json_file_path: str):
+    output = os.path.relpath(json_file_path, SRC_ROOT_PATH)
+    output = output.rstrip(".json")
+    output = output.replace("\\", "-")
+    output = output.replace("/", "-")
+    return output
+
+
+def __do_for_one(json_file_path: str):
+    output_file_loc_name = os.path.join(OUTPUT_FOL_PATH, __make_output_file_name(json_file_path))
+    db = __load_detected_data_json(json_file_path)
+    score_map = __build_score_map(db)
 
     output_report_data = score_map.make_report_text()
-    output_file_path = os.path.join(OUTPUT_FOL_PATH, f"{os.path.split(data_image_fol_path)[-1]}.txt")
+    output_file_path = output_file_loc_name + ".txt"
     with open(output_file_path, "w") as file:
         file.write(output_report_data)
 
     output_csv_data = score_map.make_csv_data()
-    output_file_path = os.path.join(OUTPUT_FOL_PATH, f"{os.path.split(data_image_fol_path)[-1]}.csv")
+    output_file_path = output_file_loc_name + ".csv"
     with open(output_file_path, "w") as file:
         file.write(output_csv_data)
 
@@ -163,13 +216,8 @@ def main():
     except FileExistsError:
         pass
 
-    for x in os.listdir(SRC_ROOT_PATH):
-        item_path = os.path.join(SRC_ROOT_PATH, x)
-        if os.path.isdir(item_path):
-            try:
-                __do_for_one(item_path)
-            except RuntimeError:
-                print("Failed:", item_path)
+    for json_file_path in __gen_json_path():
+        __do_for_one(json_file_path)
 
 
 if "__main__" == __name__:
