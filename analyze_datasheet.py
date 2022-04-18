@@ -130,6 +130,8 @@ def main():
 
     plt.cla()
     fig, ax = plt.subplots()
+    ax.set_xlabel("분산", fontname="Malgun Gothic")
+    ax.set_ylabel("평균", fontname="Malgun Gothic")
     x_data = []
     y_data = []
     n_data = []
@@ -146,7 +148,7 @@ def main():
     ax.scatter(x_data, y_data)
     for i, name in enumerate(n_data):
         ax.annotate(name, (x_data[i], y_data[i]), fontname="Malgun Gothic")
-    plt.savefig(f'{OUTPUT_FOL_PATH}/mean_var.png')
+    plt.savefig(f'{OUTPUT_FOL_PATH}/mean_var.png', dpi=600)
 
 
 if __name__ == '__main__':
