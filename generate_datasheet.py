@@ -7,7 +7,7 @@ import pytesseract as tes
 
 tes.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe'
 
-SRC_ROOT_PATH = r"C:\Users\woos8\Desktop"
+SRC_ROOT_PATH = r"C:\Users\woos8\Desktop\Detected"
 OUTPUT_FOL_PATH = r"C:\Users\woos8\Desktop\CSV files"
 
 
