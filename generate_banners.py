@@ -1,4 +1,5 @@
 import os
+import time
 import multiprocessing as mp
 
 from PIL import Image
@@ -129,6 +130,7 @@ def main():
     except FileExistsError:
         pass
 
+    start_time = time.time()
     loc_list = []
     for loc, folders, files in os.walk(SRC_ROOT_PATH):
         if len(files):
@@ -136,6 +138,8 @@ def main():
 
     with mp.Pool() as p:
         p.map(__do_for_one, loc_list)
+
+    print(f"All done in {time.time() - start_time:.2f} sec")
 
 
 if "__main__" == __name__:
