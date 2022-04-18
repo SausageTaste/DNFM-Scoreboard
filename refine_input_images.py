@@ -1,4 +1,6 @@
 import os
+import time
+import multiprocessing as mp
 
 from PIL import Image, ImageOps
 
@@ -64,11 +66,17 @@ def main():
     except FileExistsError:
         pass
 
+    start_time = time.time()
+    work_list = []
     for x in os.listdir(SRC_ROOT_PATH):
         item_path = os.path.join(SRC_ROOT_PATH, x)
         if os.path.isdir(item_path):
-            __do_for_one(item_path)
-            print(f"Done: {item_path}")
+            work_list.append(item_path)
+
+    with mp.Pool() as p:
+        p.map(__do_for_one, work_list)
+
+    print(f"All done in {time.time() - start_time:.2f} sec")
 
 
 if "__main__" == __name__:
