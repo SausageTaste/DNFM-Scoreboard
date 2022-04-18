@@ -57,13 +57,27 @@ def __make_pure_score_list(csv_file_path: str):
     return score_list
 
 
-def __save_mountain_scatter(csv_file_path, output_file_path, title, score_average):
+def __find_min_max_scores():
+    min_score = 999999999999
+    max_score = -99999999999
+
+    for csv_path in __gen_work_csv_paths():
+        for rank, score in __generate_data_from_csv(csv_path):
+            if score is None:
+                continue
+            min_score = min(score, min_score)
+            max_score = max(score, max_score)
+
+    return min_score, max_score
+
+
+def __save_mountain_scatter(csv_file_path, output_file_path, title, score_average, y_range_min, y_range_max):
     x_axis = []
     y_axis = []
 
     plt.cla()
     plt.title(title, fontname="Malgun Gothic")
-    plt.ylim((1850, 2300))
+    plt.ylim((y_range_min, y_range_max))
     plt.axhline(y=score_average, alpha=0.5)
     for rank, score in __generate_data_from_csv(csv_file_path):
         if score is None:
@@ -75,12 +89,7 @@ def __save_mountain_scatter(csv_file_path, output_file_path, title, score_averag
     plt.savefig(output_file_path, dpi=300)
 
 
-def main():
-    try:
-        os.mkdir(OUTPUT_FOL_PATH)
-    except FileExistsError:
-        pass
-
+def __gen_work_csv_paths():
     for item_name_ext in os.listdir(SRC_ROOT_PATH):
         if not item_name_ext.endswith(".csv"):
             continue
@@ -89,15 +98,36 @@ def main():
         if not os.path.isfile(item_path):
             continue
 
-        item_name, _ = os.path.splitext(item_name_ext)
-        pure_score_list = __make_pure_score_list(item_path)
+        yield item_path
+
+
+def main():
+    try:
+        os.mkdir(OUTPUT_FOL_PATH)
+    except FileExistsError:
+        pass
+
+    score_min, score_max = __find_min_max_scores()
+
+    for csv_path in __gen_work_csv_paths():
+        loc, file_name_ext = os.path.split(csv_path)
+        file_name, file_ext = os.path.splitext(file_name_ext)
+
+        pure_score_list = __make_pure_score_list(csv_path)
         if not __check_ranking_list_validity(pure_score_list):
-            print(f"Not a valid dataset: {item_path}")
+            print(f"Not a valid dataset: {csv_path}")
 
         score_average = sum(pure_score_list) / len(pure_score_list)
         score_variance = __calc_sample_variance(pure_score_list, score_average)
 
-        __save_mountain_scatter(item_path, f'{OUTPUT_FOL_PATH}/scatter_{item_name}.png', item_name, score_average)
+        __save_mountain_scatter(
+            csv_path,
+            f'{OUTPUT_FOL_PATH}/scatter_{file_name}.png',
+            file_name,
+            score_average,
+            score_min - 10,
+            score_max + 10,
+        )
 
 
 if __name__ == '__main__':
