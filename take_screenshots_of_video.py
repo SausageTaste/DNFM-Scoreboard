@@ -36,9 +36,13 @@ def main():
     root_path = r"C:\Users\woos8\Videos\Captures"
     for x in os.listdir(root_path):
         file_path = os.path.join(root_path, x)
-        if os.path.isfile(file_path):
-            print(file_path)
-            __do_for_one_video(file_path, 120)
+        if not os.path.isfile(file_path):
+            continue
+        if not file_path.endswith("mp4"):
+            continue
+
+        print(file_path)
+        __do_for_one_video(file_path, 120)
 
 
 if __name__ == '__main__':
